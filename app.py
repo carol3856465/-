@@ -2,12 +2,10 @@ import streamlit as st
 
 st.set_page_config(page_title="測測你是哪種理財星人？", page_icon="🔮", layout="centered")
 
-# 偷偷注入一點 CSS 魔法來改造 UI (Google 表單卡片風格 + 星空琉璃藍按鈕)
 # 偷偷注入一點 CSS 魔法來改造 UI (Google 表單卡片風格 + 星雲淺藍外框)
 st.markdown("""
     <style>
-    /* 1. 外層大背景 (左右兩邊的顏色) 
-       ✨ 換成更明顯的「星雲淺藍色」，宇宙感 UP！ */
+    /* 1. 外層大背景 (左右兩邊的顏色) */
     [data-testid="stAppViewContainer"] {
         background-color: #C2D6ED !important; 
     }
@@ -59,26 +57,43 @@ st.divider()
 with st.form("quiz_form"):
     st.subheader("階段一：")
     
-    # Q3
+    # Q3 (原題目 1)
     q3 = st.selectbox(
         "1. 你目前主要在哪個領域呢？",
         ["商管 / 財金 / 法律 ", 
-         "資訊 / 科技 / 工程 / 理農 ", 
+         "資訊 / 科技 /工程 / 理農 ", 
          "人文 / 藝術 / 設計 / 教育 / 服務 / 其他 "]
     )
-    
-    # Q9
-    q9 = st.radio(
-        "2. 走進玩具店看到超可愛的公仔，但手邊預算有限，你會怎麼選？",
-        ["100% 確定款式，直接帶走喜歡的「實用明盒」", 
-         "內容未知，但有機會抽中隱藏款的「驚喜盲盒」"]
+
+    # 新增題目 A (對應論文新特徵)
+    q_exp = st.selectbox(
+        "2. 你目前實際擁有的理財與投資經驗最接近哪一種？",
+        ["只有放活存或銀行定存（絕對保本）", 
+         "有買基金或 ETF（穩健進階）", 
+         "有個股買賣或加密貨幣操作經驗（積極實戰）"]
+    )
+
+    # 新增題目 B (對應論文新特徵)
+    q_bonus = st.radio(
+        "3. 如果今天意外獲得 1 萬元的獎金，你會怎麼處理？",
+        ["全放定存（絕對保本）", 
+         "買穩定配息 ETF（承受微小波動）",
+         "買熱門股波段操作（拚價差）",
+         "投入高風險標的（拚翻倍）"]
     )
     
     st.subheader("階段二：")
     
-    # Q12
+    # Q9 (原題目 2)
+    q9 = st.radio(
+        "4. 走進玩具店看到超可愛的公仔，但手邊預算有限，你會怎麼選？",
+        ["100% 確定款式，直接帶走喜歡的「實用明盒」", 
+         "內容未知，但有機會抽中隱藏款的「驚喜盲盒」"]
+    )
+    
+    # Q12 (原題目 3)
     q12 = st.slider(
-        "3. 說到投資，你的心臟最多能承受多少比例的虧損？",
+        "5. 說到投資，你的心臟最多能承受多少比例的虧損？",
         min_value=0,   
         max_value=100, 
         value=15,      
@@ -86,9 +101,9 @@ with st.form("quiz_form"):
         format="%d%%"  
     )
     
-    # Q13
+    # Q13 (原題目 4)
     q13 = st.selectbox(
-        "4. 你覺得買盲盒時的那種刺激感，最像哪一種投資行為？",
+        "6. 你覺得買盲盒時的那種刺激感，最像哪一種投資行為？",
         [" 以小博大（拚隱藏款爆擊，買彩券概念）", 
          " 定期定額（每個月抽一盒，慢慢收集）", 
          " 分散風險（跟朋友合資包盒，保證不雷）"]
@@ -103,12 +118,33 @@ if submit_btn:
     risk_score = 50  
     rationality_score = 50  
     
-    # ⚠️ 這裡的文字與你的選項完全對應（含空格）
+    # 1. 領域權重
     if q3 == "商管 / 財金 / 法律 ":
         risk_score += 15
     elif q3 == "資訊 / 科技 / 工程 / 理農 ":
         rationality_score += 10
         
+    # 2. 新增理財經驗權重
+    if q_exp == "只有放活存或銀行定存（絕對保本）":
+        risk_score -= 15
+        rationality_score += 5
+    elif q_exp == "有買基金或 ETF（穩健進階）":
+        rationality_score += 15
+    elif q_exp == "有個股買賣或加密貨幣操作經驗（積極實戰）":
+        risk_score += 20
+
+    # 3. 新增意外獎金權重
+    if q_bonus == "全放定存（絕對保本）":
+        risk_score -= 20
+    elif q_bonus == "買穩定配息 ETF（承受微小波動）":
+        risk_score -= 10
+        rationality_score += 10
+    elif q_bonus == "買熱門股波段操作（拚價差）":
+        risk_score += 15
+    else:
+        risk_score += 25
+        
+    # 4. 明盲盒選擇權重
     if q9 == "100% 確定款式，直接帶走喜歡的「實用明盒」":
         rationality_score += 25
         risk_score -= 15
@@ -116,6 +152,7 @@ if submit_btn:
         risk_score += 25
         rationality_score -= 15
         
+    # 5. 虧損承受度權重
     if q12 == 0:
         risk_score -= 25
         rationality_score += 20
@@ -124,20 +161,22 @@ if submit_btn:
     elif q12 >= 31:
         risk_score += 25
         
+    # 6. 核心矛盾與身份判定邏輯
     is_contradictory = False
-    if q9 == "100% 確定款式，直接帶走喜歡的「實用明盒」" and q13 == " 以小博大（拚隱藏款爆擊，買彩券概念）":
+    # 心理帳戶矛盾觸發點：潛意識想以小博大，但行為上(買明盒、存定存或買穩健ETF)卻非常保守
+    if q13 == " 以小博大（拚隱藏款爆擊，買彩券概念）" and (q9 == "100% 確定款式，直接帶走喜歡的「實用明盒」" or q_bonus in ["全放定存（絕對保本）", "買穩定配息 ETF（承受微小波動）"]):
         is_contradictory = True  
         
     if is_contradictory:
-        persona = "🎭 口嫌體正直的『矛盾型玩家』"
+        persona = "『矛盾型玩家』"
         description = "嘴上說著想體驗心跳加速，但身體卻很誠實地不想虧錢。你很容易在投資時患得患失，在風險與保守之間反覆橫跳！"
         strategy = "💡 給你的專屬建議：適合 60% 穩健 ETF 打底，搭配 10% 的『盲盒停損實驗區』"
-    elif risk_score >= 65:
-        persona = "🔥 歐皇附體的『激進型獵人』"
+    elif risk_score >= 65 or q12 >= 31:
+        persona = "『激進型獵人』"
         description = "你享受抽盲盒的刺激感，投資上也偏愛高風險高報酬。你具備強大的心理素質，只要看準了就敢衝！"
         strategy = "💡 給你的專屬建議：適合攻擊型配置，但一定要留至少 10% 的現金當作『風險防火牆』！"
     else:
-        persona = "🛡️ 穩如泰山的『佛系收藏家』"
+        persona = "『佛系收藏家』"
         description = "你喜歡確定的事物，買東西不靠運氣，投資也愛穩穩拿配息。是個超級理性、不容易被市場恐慌情緒煽動的人！"
         strategy = "💡 給你的專屬建議：適合 70% 穩定配息 ETF 加上大型藍籌股定期定額，靠時間穩穩把錢養大！"
 
@@ -149,9 +188,9 @@ if submit_btn:
     # 置中縮小圖片
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if persona == "🎭 口嫌體正直的『矛盾型玩家』":
+        if persona == "『矛盾型玩家』":
             st.image("type1.png", use_container_width=True)
-        elif persona == "🔥 歐皇附體的『激進型獵人』":
+        elif persona == "『激進型獵人』":
             st.image("type2.png", use_container_width=True)
         else:
             st.image("type3.png", use_container_width=True)
